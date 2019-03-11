@@ -109,7 +109,7 @@ probeRect = [0.1*xCenter, yCenter-0.4*xCenter, 0.9*xCenter, yCenter+0.4*xCenter;
     1.1*xCenter, yCenter-0.4*xCenter, 1.9*xCenter, yCenter+0.4*xCenter];
 
 respTimeWindow = 3;
-initFixDur = 0.5;
+initFixDur =2;
 
 for t = 1:nTrial
     % show init fixation
