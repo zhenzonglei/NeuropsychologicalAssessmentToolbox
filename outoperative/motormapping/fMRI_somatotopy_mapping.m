@@ -1,4 +1,11 @@
-function fMRI_somatotopy_mapping(subjectID,runID,blockDur)
+function fMRI_somatotopy_mapping(subjectID,runID,blockDur,cueType)
+% fMRI_somatotopy_mapping(subjectID,runID,blockDur,cueType)
+% Subject presses R key to indicate she/he is ready.
+% Then, the experimenter presses S key to begin the experiment.
+% cueType: static or dynamic cue to indicate task switching
+
+%% Arguments
+if nargin < 4, cueType  = 'static'; end % static or dynamic
 if nargin < 3, blockDur = 5;end
 if nargin < 2, runID = 1;end
 
@@ -30,7 +37,7 @@ Screen('Flip', window);
 [xCenter, yCenter] = RectCenter(windowRect);
 
 %% Make texture for task
-stimImg  = strcat( 'stimuli','\', extractfield(dir(fullfile('stimuli','*.JPG')),'name'))';
+stimImg  = strcat('stimuli','\', extractfield(dir(fullfile('stimuli','*.JPG')),'name'))';
 nTask = length(stimImg);
 stimTexture = zeros(nTask,1);
 for i = 1:length(stimImg)
@@ -38,10 +45,10 @@ for i = 1:length(stimImg)
     stimTexture(i) = Screen('MakeTexture', window,img);
 end
 
-
 %% Design
 % Group ten motor task into two sets
-blockSet = [2,6,3,1,7;8,10,4,5,9]';
+blockSet = [1,6,4,12,2,7;
+            9,8,11,3,5,10]';
 nBlock = size(blockSet,1);
 
 % The order of blocks(set)
@@ -61,9 +68,8 @@ readyKey = KbName('r');
 % RespondKey2 = KbName('3#');
 % RespondKey = KbName('1!');
 
-
 %% Check ready for subject
-Screen('DrawTexture', window, stimTexture(11));
+Screen('DrawTexture', window, stimTexture(end-1));
 Screen('Flip', window);
 
 % Wait ready signal
@@ -79,7 +85,7 @@ while true
 end
 Screen('Flip', window);
 
-%% Trigger for MRI
+%% Wait trigger to begin the (MRI)experiment
 while KbCheck; end
 while true
     [keyIsDown,~,keyCode] = KbCheck;
@@ -92,8 +98,7 @@ while true
     end
 end
 
-
-%% Begin fMRI experiment 
+%% Run fMRI experiment 
 %Iterate for block sets
 for s = 1:nSet
     blocks = blockSet(randperm(nBlock),setOrder(s));
@@ -110,14 +115,23 @@ for s = 1:nSet
         end
     end
     
-    % Cue for switching from fixation to task 
-    while GetSecs - tBegin < blockDur,
-        Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
-        tSwitch = Screen('Flip', window);
-        while GetSecs - tSwitch < switchCueDur,  end
+    % static cue for task switching
+    if strcmp(cueType,'static')
+        while GetSecs - tBegin < blockDur,
+            Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
+            Screen('Flip', window);
+        end
         
-        tSwitch = Screen('Flip', window);
-        while GetSecs - tSwitch < switchCueDur,  end
+    % dynamic cue for task switching
+    else    
+        while GetSecs - tBegin < blockDur,
+            Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
+            tSwitch = Screen('Flip', window);
+            while GetSecs - tSwitch < switchCueDur,  end
+            
+            tSwitch = Screen('Flip', window);
+            while GetSecs - tSwitch < switchCueDur,  end
+        end
     end
     
     % Iterate for block within a block sets
@@ -136,19 +150,29 @@ for s = 1:nSet
             end
         end
         
-        % Cue for task switch
-        while GetSecs - tCue < blockDur,
-            Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
-            tSwitch = Screen('Flip', window);
-            while GetSecs - tSwitch < switchCueDur,  end
+        % static cue for task switching
+        if strcmp(cueType,'static')
+            while GetSecs - tCue < blockDur,
+                Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
+                Screen('Flip', window);
+            end
             
-            tSwitch = Screen('Flip', window);
-            while GetSecs - tSwitch < switchCueDur,  end
+        % dynamic cue for task switching
+        else
+            while GetSecs - tCue < blockDur,
+                Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
+                tSwitch = Screen('Flip', window);
+                while GetSecs - tSwitch < switchCueDur,  end
+                
+                tSwitch = Screen('Flip', window);
+                while GetSecs - tSwitch < switchCueDur,  end
+            end
+            
         end
     end
 end
 
-% ending baseline
+% Ending baseline
 Screen('DrawDots', window, [xCenter, yCenter], 40, [0 0 0], [], 2);
 tEnd = Screen('Flip', window);
 while GetSecs - tEnd < blockDur,  end
