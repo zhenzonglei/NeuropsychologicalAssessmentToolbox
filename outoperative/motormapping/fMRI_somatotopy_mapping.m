@@ -5,8 +5,8 @@ function fMRI_somatotopy_mapping(subjectID,runID,blockDur,cueType)
 % cueType: static or dynamic cue to indicate task switching
 
 %% Arguments
-if nargin < 4, cueType  = 'static'; end % static or dynamic
-if nargin < 3, blockDur = 5;end
+if nargin < 4, cueType  = 'dynamic'; end % static or dynamic
+if nargin < 3, blockDur = 15;end
 if nargin < 2, runID = 1;end
 
 %% Print test information
@@ -33,31 +33,36 @@ grey = white / 2;
 % Flip to clear
 Screen('Flip', window);
 
-% Get the centre coordinate of the window in pixels
+% % Get the centre coordinate of the window in pixels
 [xCenter, yCenter] = RectCenter(windowRect);
 
-%% Make texture for task
-stimImg  = strcat('stimuli','\', extractfield(dir(fullfile('stimuli','*.JPG')),'name'))';
-nTask = length(stimImg);
+%% Make texture for auxiliary instruction
+beginInst = Screen('MakeTexture', window, imread(fullfile('stimuli','begin.JPG')));
+restInst = Screen('MakeTexture', window, imread(fullfile('stimuli','rest.JPG')));
+endInst = Screen('MakeTexture', window, imread(fullfile('stimuli','end.JPG')));
+
+%% Make texture for motor task
+task = {'ankle','toe','leftleg','rightleg','forearm','upperarm',...
+    'wrist','finger','eye','jaw','lip','tongue'};
+nTask = length(task);
 stimTexture = zeros(nTask,1);
-for i = 1:length(stimImg)
-    img = imread(stimImg{i});
+for i = 1:nTask
+    img = imread(fullfile('stimuli',[task{i},'.JPG']));
     stimTexture(i) = Screen('MakeTexture', window,img);
 end
 
+
 %% Design
 % Group ten motor task into two sets
-blockSet = [1,6,4,12,2,7;
-            9,8,11,3,5,10]';
+blockSet = [1:2:nTask;2:2:nTask]';
 nBlock = size(blockSet,1);
 
 % The order of blocks(set)
-% 1, foot,leftleg,forearm ,eye,lip;
-% 2, rightleg,upperarm,hand,jaw,tongue,
 order = randperm(2);
 setOrder = [order,fliplr(order)];
 nSet = length(setOrder);
-switchCueDur = 0.5;
+cueDur = 1;
+switchDur = 0.5;
 
 %% Set keys
 startKey = KbName('s');
@@ -69,7 +74,7 @@ readyKey = KbName('r');
 % RespondKey = KbName('1!');
 
 %% Check ready for subject
-Screen('DrawTexture', window, stimTexture(end-1));
+Screen('DrawTexture', window, beginInst);
 Screen('Flip', window);
 
 % Wait ready signal
@@ -98,15 +103,16 @@ while true
     end
 end
 
-%% Run fMRI experiment 
+%% Run fMRI experiment
 %Iterate for block sets
 for s = 1:nSet
     blocks = blockSet(randperm(nBlock),setOrder(s));
     
     % begining baseline
-    Screen('DrawDots', window, [xCenter, yCenter], 40, [0 0 0], [], 2);
-    tBegin = Screen('Flip', window);
-    while GetSecs - tBegin < blockDur-2,
+    Screen('DrawTexture', window, restInst);
+    tBegin = Screen('Flip', window);    
+    
+    while GetSecs - tBegin < blockDur - cueDur,
         % empty the key buffer
         while KbCheck, end
         keyIsDown = KbCheck;
@@ -122,30 +128,30 @@ for s = 1:nSet
             Screen('Flip', window);
         end
         
-    % dynamic cue for task switching
-    else    
+        % dynamic cue for task switching
+    else
         while GetSecs - tBegin < blockDur,
             Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
             tSwitch = Screen('Flip', window);
-            while GetSecs - tSwitch < switchCueDur,  end
+            while GetSecs - tSwitch < switchDur,  end
             
             tSwitch = Screen('Flip', window);
-            while GetSecs - tSwitch < switchCueDur,  end
+            while GetSecs - tSwitch < switchDur,  end
         end
     end
     
     % Iterate for block within a block sets
-    for b = 1:nBlock 
+    for b = 1:nBlock
         % show task instruction
         Screen('DrawTexture', window,  stimTexture(blocks(b)));
         tCue = Screen('Flip', window);
         
         % check the key
-        while GetSecs -tCue < blockDur-2,
+        while GetSecs -tCue < blockDur - cueDur,
             % empty the key buffer
             while KbCheck, end
             keyIsDown = KbCheck;
-            if keyIsDown 
+            if keyIsDown
                 sca; return;
             end
         end
@@ -157,15 +163,15 @@ for s = 1:nSet
                 Screen('Flip', window);
             end
             
-        % dynamic cue for task switching
+            % dynamic cue for task switching
         else
             while GetSecs - tCue < blockDur,
                 Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
                 tSwitch = Screen('Flip', window);
-                while GetSecs - tSwitch < switchCueDur,  end
+                while GetSecs - tSwitch < switchDur,  end
                 
                 tSwitch = Screen('Flip', window);
-                while GetSecs - tSwitch < switchCueDur,  end
+                while GetSecs - tSwitch < switchDur,  end
             end
             
         end
@@ -173,13 +179,13 @@ for s = 1:nSet
 end
 
 % Ending baseline
-Screen('DrawDots', window, [xCenter, yCenter], 40, [0 0 0], [], 2);
+Screen('DrawTexture', window, restInst);
 tEnd = Screen('Flip', window);
 while GetSecs - tEnd < blockDur,  end
 
 % Disp ending instruction
 endDur = 5;
-Screen('DrawTexture', window, stimTexture(end));
+Screen('DrawTexture', window, endInst);
 tEnd = Screen('Flip', window);
 while GetSecs - tEnd < endDur,  end
 sca;
