@@ -22,7 +22,7 @@ function varargout = stroop_gui(varargin)
 
 % Edit the above text to modify the response to help stroop_gui
 
-% Last Modified by GUIDE v2.5 30-Jan-2019 15:02:15
+% Last Modified by GUIDE v2.5 23-Apr-2019 21:42:22
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -237,7 +237,3 @@ function Run_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 run_stroop(handles)
-
-
-
-

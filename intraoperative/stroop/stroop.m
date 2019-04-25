@@ -50,9 +50,9 @@ resp(:,2) = [congruent;incongruent];
 
 % Create true answer vector,red-1, green-2,blue-3
 label = {'red','green','blue'};
-if strcmp(task,'Letter recognition')
+if strcmp(task,'Letter discrimination')
     task_stim = word;
-else
+elseif strcmp(task,'Color discrimination')
     task_stim = color;
 end
 for i = 1:length(label)
@@ -64,15 +64,16 @@ end
 resp = Shuffle(resp,2);
 
 % make jitter 
-a = -0.5; b = 1.5;
-jitter = a + (b-a).*rand(totalTrial,1);
+jitter = normrnd(0,0.3,totalTrial,1);
+jitter = SOA + jitter;
 
 %%  Keyboard
 % Define the keyboard keys that are listened for. 
+KbName('UnifyKeyNames'); 
 escapeKey = KbName('ESCAPE'); % stop and exit
-leftKey = KbName('LeftArrow'); %1-red
-rightKey = KbName('RightArrow'); % 2-green
-downKey = KbName('DownArrow'); % 3-blue
+leftKey = KbName('1'); %1-red
+rightKey = KbName('3'); % 2-green
+% downKey = KbName('DownArrow'); % 3-blue
 
 %% preprare the screen
 % close all screen
@@ -85,14 +86,9 @@ PsychDefaultSetup(2);
 screenNumber = max(Screen('Screens'));
 % Define black, white and grey
 white = WhiteIndex(screenNumber);
-grey = white / 2;
-% black = BlackIndex(screenNumber);
 
 % Open the screen
-[window, windowRect]= PsychImaging('OpenWindow', screenNumber, grey);
-
-% Get the centre coordinate of the window in pixels
-[xCenter, yCenter] = RectCenter(windowRect);
+window = PsychImaging('OpenWindow', screenNumber, white);
 
 % Flip to clear
 Screen('Flip', window);
@@ -101,17 +97,12 @@ Screen('Flip', window);
 fixation = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction', 'fixation.jpg')));
 beginInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','begin.jpg')));
 colorInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','color.jpg')));
-wordInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','word.jpg')));
 endInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','end.jpg')));
-if strcmp(task,'Letter recognition')
-    instruction = wordInstruction;
-else
-    instruction = colorInstruction;
-end
+instruction = colorInstruction;
 
 %% Make texture for stimulus
 stimID = unique(resp(:,2));
-stimTexture = [];
+stimTexture = zeros(length(stimID),1);
 for i = 1:length(stimID)
     stimTexture(i) = Screen('MakeTexture', window, imread(stimImg{stimID(i)}));
 end
@@ -150,14 +141,14 @@ for t = 1:totalTrial
     stimOn = true;
     
     % empty the key buffer
-    while KbCheck, end
+    while KbCheck(), end
     
     % wait response     
     response = 0; 
-    while GetSecs - tStart < SOA + jitter(t)
+    while GetSecs - tStart < jitter(t)
         if GetSecs -tStart > stimDur && stimOn
-            Screen('DrawDots', window, [xCenter, yCenter], 30, [0 0 0], [], 2);
-            % Screen('DrawTexture', window, fixation);
+            % Screen('DrawDots', window, [xCenter, yCenter], 30, [0 0 0], [], 2);
+            Screen('DrawTexture', window, fixation);
             Screen('Flip', window);
             stimOn = false;
         end
@@ -169,12 +160,10 @@ for t = 1:totalTrial
                     sca; return;
                 elseif keyCode(leftKey)
                     response = 1;
-                elseif keyCode(downKey)
-                    response = 2;
                 elseif keyCode(rightKey)
-                    response = 3;
+                    response = 2;
                 else
-                    response = 4;
+                    response = 3;
                 end
                 % collect the trial data
                 resp(t, 4) = response;
@@ -191,8 +180,9 @@ WaitSecs(stimDur);
 sca;
 
 %% Save data
-outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_soa%.2f_nt%d.mat',...
-    patientID,siteID,task,stimType,stimDur,SOA,totalTrial));
+date = strrep(strrep(datestr(clock),':','-'),' ','-');
+outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_soa%.2f_nt%d_%s.mat',...
+    patientID,siteID,task,stimType,stimDur,SOA,totalTrial,date));
 fprintf('Results were saved to: %s\n',outFile);
 save(outFile,'resp','patientID','siteID','task','stimType',...
     'stimDur','SOA','nTrial');

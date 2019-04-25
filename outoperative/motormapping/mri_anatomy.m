@@ -1,9 +1,11 @@
-function mri_anatomy(subjectID,runID,modality )
-% mri_anatomy(subjectID,runID,runDur,modality)
+function mri_anatomy(subjectID,runID,modality,SubjResp)
+% mri_anatomy(subjectID,runID,runDur,modality,SubjResp)
 % Subject presses 1! or 2@ or 3# or 4$ key indicate she/he is ready.
 % Then, the scanner or experimenter presses S key to begin the experiment.
 % modality: field, t1, t2, dwi
 % Zonglei Zhen @ 2019.03
+
+if nargin < 4, SubjResp = false; end
 
 %% run total time in sec unit 
 if strcmp(modality,'field')
@@ -13,7 +15,7 @@ elseif  strcmp(modality,'t1')
 elseif  strcmp(modality,'t2')
     runTotalTime = 5*60 + 18;
 elseif  strcmp(modality,'dwi')
-    runTotalTime = 13*60 + 22;
+    runTotalTime = 14*60 + 19;
 end
 
 %% Print test information
@@ -25,6 +27,7 @@ fprintf('Total duration for one run: %.2f min\n',runTotalTime/60);
 %% preprare the screen
 sca; % close all screen
 Screen('Preference', 'SkipSyncTests', 1);% skip sync tests
+HideCursor;
 
 % Setup PTB with some default values
 PsychDefaultSetup(2);
@@ -40,43 +43,44 @@ black = BlackIndex(screenNumber);
 % Flip to clear
 Screen('Flip', window);
 
-% % Get the centre coordinate of the window in pixels
+% Get the centre coordinate of the window in pixels
 [xCenter, yCenter] = RectCenter(windowRect);
 
 %% Make texture for auxiliary instruction
-beginInst = Screen('MakeTexture', window, imread(fullfile('stimuli','mri_begin.JPG')));
-endInst = Screen('MakeTexture', window, imread(fullfile('stimuli','mri_end.JPG')));
+stimDir = fullfile('stimuli','stimuli_with_pace');
+beginInst = Screen('MakeTexture', window, imread(fullfile(stimDir,'mri_begin.JPG')));
+endInst = Screen('MakeTexture', window, imread(fullfile(stimDir,'mri_end.JPG')));
 
-% duration for cue
-cueDur = 5;
+% cue duration 
+cueDur = 2;
 
 %% Set keys
 startKey = KbName('s');
 escKey = KbName('ESCAPE');
-respondKey1 = KbName('1!');
-respondKey2 = KbName('2@');
 respondKey3 = KbName('3#');
 respondKey4 = KbName('4$');
 
-%% Check ready for subject
+%% present the begining instruction
 Screen('DrawTexture', window, beginInst);
 Screen('Flip', window);
-
-% Wait ready signal
-while KbCheck; end
-while true
-    [keyIsDown, ~, keyCode] = KbCheck();
-      responseKey = keyCode(respondKey1) | keyCode(respondKey2) ...
-        | keyCode(respondKey3) | keyCode(respondKey4);
-    
-    if keyIsDown && responseKey
-        break;
-    elseif keyIsDown && keyCode(escKey)
-        sca;
-        return
+% Check ready for subject
+if SubjResp
+    while KbCheck; end
+    while true
+        [keyIsDown, ~, keyCode] = KbCheck();
+        responseKey = keyCode(respondKey3) | keyCode(respondKey4);
+        if keyIsDown && responseKey
+            break;
+        elseif keyIsDown && keyCode(escKey)
+            sca;
+            return
+        end
     end
+    Screen('Flip', window);
+else
+    WaitSecs(5)
 end
-Screen('Flip', window);
+fprintf('***** The subject is READY. Please RUN MRI *****\n');
 
 %% Wait trigger to begin the (MRI)experiment
 while KbCheck; end
@@ -91,11 +95,10 @@ while true
     end
 end
 
-%% Run resting fMRI experiment 
+%% Run anatomy MRI experiment 
 Screen('DrawDots', window, [xCenter, yCenter], 40, [1 1 1]*0.5, [], 3);
 tBegin = Screen('Flip', window);
 while GetSecs - tBegin < runTotalTime,
-    while KbCheck, end
     [keyIsDown,~,keyCode] = KbCheck;
     if keyIsDown && keyCode(escKey)
         sca; return;
@@ -109,8 +112,10 @@ while GetSecs - tEnd < cueDur,  end
 sca;
 
 %% Save data
+date =  strrep(strrep(datestr(clock),':','-'),' ','-');
 outFile = fullfile('data',sprintf('%s-%s-run%d-%s.mat',subjectID,modality,runID,date));
 fprintf('Data were saved to: %s\n',outFile);
 save(outFile);
+
 
 

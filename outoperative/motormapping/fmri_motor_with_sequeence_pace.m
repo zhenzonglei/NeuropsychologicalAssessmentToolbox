@@ -1,10 +1,8 @@
-function fmri_motor(subjectID,runID,blockDur,tr,SubjResp)
-% fmri_motor(subjectID,runID,blockDur,tr,SubjResp)
+function fmri_motor_with_sequeence_pace(subjectID,runID,blockDur,tr,SubjResp)
+% fmri_motor_with_sequeence_pace(subjectID,runID,blockDur,tr,SubjResp)
 % Subject presses 1! or 2@ or 3# or 4$ key to indicate she/he is ready.
 % Then,  the scanner or experimenter presses S key to begin the experiment.
 % SubjResp: false or true. If you need subejct respond, set SubjResp to True
-% Otherwise false.
-
 % Zonglei Zhen @ 2019.03
 
 %% Arguments
@@ -13,7 +11,7 @@ if nargin < 4, tr = 2; end
 if nargin < 3, blockDur = 16; end
 
 %% Print test information
-fprintf('Runing fMRI Somatotopy Mapping\n');
+fprintf('Runing fMRI Motor Mapping\n');
 fprintf('Subject ID: %s\n',subjectID);
 fprintf('Run ID: %d\n',runID);
 fprintf('fMRI TR: %d\n',tr);
@@ -45,7 +43,7 @@ Screen('Flip', window);
 [xCenter, yCenter] = RectCenter(windowRect);
 
 %% Make texture for auxiliary instruction
-stimDir = fullfile('stimuli','stimuli_no_pace');
+stimDir = fullfile('stimuli','stimuli_with_pace');
 beginInst = Screen('MakeTexture', window, imread(fullfile(stimDir,'task_begin.JPG')));
 restInst = Screen('MakeTexture', window, imread(fullfile(stimDir,'rest.JPG')));
 endInst = Screen('MakeTexture', window, imread(fullfile(stimDir,'task_end.JPG')));
@@ -83,7 +81,7 @@ totalBlock = 4*7+1;
 design = nan(totalBlock,3);
 for s = 1:nSet
     si = (s-1)*7+1;
-    design(si,:) = [(s-1)*7*blockDur,0,blockDur];     
+    design(si,:) = [(s-1)*7*blockDur,0,blockDur];
     for b = 1:nBlock
         bi = si + b;
         design(bi,:) = [((s-1)*7+b)*blockDur,blockSet(b,s),blockDur];
@@ -93,7 +91,7 @@ design(end,:) = [(totalBlock-1)*blockDur,0,blockDur];
 size(design);
 
 %% set cue duration
-cueDur = 1; endDur = 2;
+cueDur = 1;  endDur = 3;
 
 %% Set keys
 startKey = KbName('s');
@@ -104,7 +102,8 @@ respondKey4 = KbName('4$');
 %% present the begining instruction
 Screen('DrawTexture', window, beginInst);
 Screen('Flip', window);
-if SubjResp % Check ready for subject
+% Check ready for subject
+if SubjResp
     while KbCheck; end
     while true
         [keyIsDown, ~, keyCode] = KbCheck();
@@ -117,7 +116,7 @@ if SubjResp % Check ready for subject
         end
     end
     Screen('Flip', window);
-else % Do not check, but wait 5s
+else
     WaitSecs(5)
 end
 fprintf('*****--- The subject is READY, Please RUN MRI ---*****\n');
@@ -135,13 +134,18 @@ while true
     end
 end
 
+dotArray = [xCenter-105, xCenter-35, xCenter+35, xCenter+105;
+    yCenter+40, yCenter+40, yCenter+40, yCenter+40];
+
 %% Run fMRI experiment
+%Iterate for block sets
 for s = 1:nSet
     blocks = blockSet(:,s);
     fprintf('BlockSet %d:',s);
     
     % begining baseline
     Screen('DrawTexture', window, restInst);
+    Screen('DrawDots', window, dotArray, 40, [0.5 0.5 0.5], [], 2);
     tBegin = Screen('Flip', window);
     while GetSecs - tBegin < blockDur - cueDur,
         [keyIsDown,~,keyCode] = KbCheck;
@@ -149,24 +153,46 @@ for s = 1:nSet
             sca; return;
         end
     end
+    
     Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
     Screen('Flip', window);
-    while GetSecs - tBegin < blockDur,   end
-
+    while GetSecs - tBegin < blockDur,end
+   
     % Iterate for block within a block sets
     for b = 1:nBlock
         fprintf(' %s,',task{blocks(b)});
         Screen('DrawTexture', window,  stimTexture(blocks(b)));
+        Screen('DrawDots', window, dotArray, 40, [0.5 0.5 0.5], [], 2);
         tCue = Screen('Flip', window);
-        while GetSecs -tCue < blockDur - cueDur,
-            [keyIsDown,~,keyCode] = KbCheck;
-            if keyIsDown && keyCode(escKey)
-                sca; return;
+        while GetSecs -tCue < 1, end
+   
+        while GetSecs - tCue < blockDur - cueDur,
+            for d = 1:4 % show pace dot 
+                Screen('DrawTexture', window, stimTexture(blocks(b)));
+                Screen('DrawDots', window, dotArray(:,1:d), 40, [0 0 0], [], 2);
+                if d < 4
+                    Screen('DrawDots', window, dotArray(:,(d+1):end), 40, [0.5 0.5 0.5], [], 2);
+                else
+                    Screen('DrawDots', window, dotArray(:,1), 40, [0.5 0.5 0.5], [], 2);
+                end
+                tDot = Screen('Flip', window);
+                while GetSecs - tDot < 1,
+                    if  GetSecs - tCue > blockDur - cueDur, break; end
+                end
+                if  GetSecs - tCue > blockDur - cueDur, break; end
+                
+                % Check ESC key
+                [keyIsDown,~,keyCode] = KbCheck;
+                if keyIsDown && keyCode(escKey)
+                    sca; return;
+                end
             end
         end
+        
+        % show switch dots
         Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
         Screen('Flip', window);
-        while GetSecs - tCue < blockDur, end
+        while GetSecs - tCue < blockDur,end
     end
     fprintf('\n');
 end
@@ -187,4 +213,5 @@ date =  strrep(strrep(datestr(clock),':','-'),' ','-');
 outFile = fullfile('data',sprintf('%s-motor-run%d-%s.mat',subjectID,runID,date));
 fprintf('Data were saved to: %s\n',outFile);
 save(outFile);
+
 

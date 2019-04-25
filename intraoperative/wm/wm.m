@@ -51,10 +51,9 @@ resp(:,2) = stim;
 resp(:,3) = resp(:,1);
 
 % make jitter
-a = -0.5; b = 0.5;
-jitter = a + (b-a).*rand(totalTrial,1);
+jitter = normrnd(0.5,0.2,totalTrial,1);
+jitter = SOA + jitter;
 
- 
 %% preprare the screen
 % close all screen
 sca;
@@ -66,20 +65,20 @@ PsychDefaultSetup(2);
 screenNumber = max(Screen('Screens'));
 % Define black, white and grey
 white = WhiteIndex(screenNumber);
-grey = white / 2;
-% black = BlackIndex(screenNumber);
 
 % Open the screen
-[window, windowRect]= PsychImaging('OpenWindow', screenNumber, grey);
+[window, windowRect]= PsychImaging('OpenWindow', screenNumber, white/2);
+yWidth = windowRect(4);
 
 % Get the centre coordinate of the window in pixels
 [xCenter, yCenter] = RectCenter(windowRect);
+destRect = [xCenter-0.5*yWidth, 0, xCenter + 0.5*yWidth, yWidth];
 
 % Flip to clear
 Screen('Flip', window);
 
 %% Make texture for  instruction
-% fixation = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction', 'fixation.jpg')));
+fixation = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction', 'fixation.jpg')));
 % beginInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','begin.jpg')));
 % restInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','rest.jpg')));
 onebackInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','oneback.jpg')));
@@ -93,7 +92,7 @@ end
 
 %% Make texture for stimulus
 stimID = unique(resp(:,2));
-stimTexture = [];
+stimTexture = zeros(length(stimID),1);
 for i = 1:length(stimID)
     stimTexture(i) = Screen('MakeTexture', window, imread(stimImg{stimID(i)}));
 end
@@ -111,46 +110,37 @@ end
 % instruction
 Screen('DrawTexture', window, instruction);
 Screen('Flip', window);
-KbStrokeWait;
-
-% % begin 
-% Screen('DrawTexture', window, beginInstruction);
-% Screen('Flip', window);
-% WaitSecs(stimDur);
-% 
-% % fixation
-% Screen('DrawTexture', window, fixation);
-% Screen('Flip', window);
-% WaitSecs(stimDur);
+KbStrokeWait();
 
 %%  Keyboard
 % Define the keyboard keys that are listened for. 
+KbName('UnifyKeyNames'); 
 escapeKey = KbName('ESCAPE'); % stop and exit
-leftKey = KbName('LeftArrow'); %1-match
-rightKey = KbName('RightArrow'); % 2-not match
+leftKey = KbName('1'); %1-match
+rightKey = KbName('3'); % 2-not match
 
 %% show the stimui and wait respons
 for t = 1:totalTrial
     % show stimulus
-    Screen('DrawTexture', window,  stimTexture(textureID(t)));
+    Screen('DrawTexture', window,  stimTexture(textureID(t)),[],destRect);
     tStart = Screen('Flip', window);
     stimOn = true;
     
     % empty the key buffer
-    while KbCheck, end
+    while KbCheck(), end
     
     % wait response    
     response = 0;
-    while GetSecs - tStart < SOA + jitter(t)
+    while GetSecs - tStart < jitter(t)
         if GetSecs -tStart > stimDur && stimOn
-            Screen('DrawDots', window, [xCenter, yCenter], 40, [1 0 0], [], 2);
+            Screen('DrawTexture', window, fixation);
             Screen('Flip', window);
             stimOn = false;
         end
         
         if ~response
             [keyIsDown, tEnd, keyCode] = KbCheck;
-            if keyIsDown
+            if keyIsDown 
                 if keyCode(escapeKey)
                     sca; return;
                 elseif keyCode(leftKey)
@@ -160,7 +150,7 @@ for t = 1:totalTrial
                 else
                     response = 3;
                 end
-                % collect the trial data
+                % collect response data
                 resp(t, 4) = response;
                 resp(t, 5) = (tEnd - tStart)*1000;
             end
@@ -175,8 +165,9 @@ WaitSecs(1);
 sca;
 
 %% Save data
-outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_soa%.2f_nt%d.mat',...
-    patientID,siteID,task,stimType,stimDur,SOA,totalTrial));
+date =  strrep(strrep(datestr(clock),':','-'),' ','-');
+outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_soa%.2f_nt%d_%s.mat',...
+    patientID,siteID,task,stimType,stimDur,SOA,totalTrial,date));
 fprintf('Results were saved to: %s\n',outFile);
 save(outFile,'resp','patientID','siteID','task','stimType',...
     'stimDur','SOA','nTrial');

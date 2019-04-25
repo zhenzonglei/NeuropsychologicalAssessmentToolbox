@@ -16,6 +16,7 @@ siteID =   get(handles.SiteID,'String');
 str = get(handles.Task,'String');
 val = get(handles.Task,'Value');
 task = str{val};
+
 % fprintf('task: %s\n',task)
 
 % stim type

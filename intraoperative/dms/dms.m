@@ -20,7 +20,7 @@ parDir = fullfile('stimuli',stimType);
 stimImg  = strcat(parDir,'\', extractfield(dir(fullfile(parDir,'*.jpg')),'name'))';
 
 %% Generate response matrix for all trials
-% respone matrix, nTrial x 7 array. 
+% respone matrix, nTrial x 7 array.
 % first column,  cond index,
 % second column, targ stim index(i.e.,true answer)
 % third column,  distract stim index
@@ -40,8 +40,8 @@ for i = 1:nTrial
 end
 
 % make jitter
-a = -0.5; b = 0.5;
-jitter = a + (b-a).*rand(nTrial,1);
+jitter = normrnd(0,0.25,nTrial,1);
+
 
 %% preprare the screen
 % close all screen
@@ -72,7 +72,7 @@ endInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instru
 
 
 
- %% Make texture for stimulus
+%% Make texture for stimulus
 stimID = unique(resp(:,2:3));
 stimTexture = [];
 for i = 1:length(stimID)
@@ -88,10 +88,10 @@ KbStrokeWait;
 
 
 %  Keyboard
-% Define the keyboard keys that are listened for. 
+% Define the keyboard keys that are listened for.
 escapeKey = KbName('ESCAPE'); % stop and exit
-leftKey = KbName('LeftArrow'); %1-match
-rightKey = KbName('RightArrow'); % 2-not match
+leftKey = KbName('1'); %1-match
+rightKey = KbName('3'); % 2-not match
 
 %% show the stimui and wait respons
 fprintf('Run %s task for %s\n',task, stimType);
@@ -105,26 +105,26 @@ for i = 1:length(stimID)
 end
 
 cueRect = [0.6*xCenter, yCenter-0.4*xCenter, 1.4*xCenter, yCenter+0.4*xCenter];
-probeRect = [0.1*xCenter, yCenter-0.4*xCenter, 0.9*xCenter, yCenter+0.4*xCenter; 
+probeRect = [0.1*xCenter, yCenter-0.4*xCenter, 0.9*xCenter, yCenter+0.4*xCenter;
     1.1*xCenter, yCenter-0.4*xCenter, 1.9*xCenter, yCenter+0.4*xCenter];
 
-respTimeWindow = 3;
+respTimeWindow = 2;
 initFixDur =2;
 
 for t = 1:nTrial
     % show init fixation
-    Screen('DrawDots', window, [xCenter, yCenter], 40, [0 0 0], [], 2);
+    Screen('DrawTexture', window, fixation);
     tInit = Screen('Flip', window);
     while GetSecs - tInit < initFixDur,  end
-       
+    
     % show cue(sample) stimulus
     Screen('DrawTexture', window,  stimTexture(textureID(t,1)),[],cueRect');
-    tCue = Screen('Flip', window);   
+    tCue = Screen('Flip', window);
     % cue(sample) duration
     while GetSecs -tCue < stimDur,  end
     
     % show fixation
-    Screen('DrawDots', window, [xCenter, yCenter], 40, [0 0 0], [], 2);
+    Screen('DrawTexture', window, fixation);
     tFix = Screen('Flip', window);
     % delay time
     while GetSecs - tFix < delayTime,  end
@@ -136,9 +136,9 @@ for t = 1:nTrial
     % empty the key buffer
     while KbCheck, end
     
-    % wait response    
+    % wait response
     response = false;
-    while GetSecs - tTest < respTimeWindow %+ jitter(t)
+    while GetSecs - tTest < respTimeWindow + jitter(t)
         if ~response
             [keyIsDown, tKey, keyCode] = KbCheck;
             if keyIsDown
@@ -161,8 +161,8 @@ for t = 1:nTrial
             end
         end
     end
+    
 end
-
 %% Disp ending instruction
 Screen('DrawTexture', window, endInstruction);
 Screen('Flip', window);
@@ -170,8 +170,9 @@ WaitSecs(stimDur);
 sca;
 
 %% Save data
-outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_delay%.2f_nt%d.mat',...
-    patientID,siteID,task,stimType,stimDur,delayTime,nTrial));
+date =  strrep(strrep(datestr(clock),':','-'),' ','-');
+outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_delay%.2f_nt%d_%s.mat',...
+    patientID,siteID,task,stimType,stimDur,delayTime,nTrial,date));
 fprintf('Results were saved to: %s\n',outFile);
 save(outFile,'resp','patientID','siteID','task','stimType',...
     'stimDur','delayTime','nTrial');
