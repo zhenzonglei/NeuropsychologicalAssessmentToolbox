@@ -1,8 +1,18 @@
-function [resp, outFile] = wm(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
-% [resp,outFile] = stroop(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
-if nargin < 7, SOA = 1;end
-if nargin < 6, stimDur = 0.5; end
+function [test, outFile] = wm(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
+% [test, outFile] = wm(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
+if nargin < 7, SOA = 2;end
+if nargin < 6, stimDur = 1; end
 if nargin < 5, nTrial = 10; end
+
+% close all; 
+% clear
+% patientID = 'PP';
+% siteID = 'A1-2';
+% task = 'oneback';
+% stimType = 'adult';
+% nTrial = 12;
+% stimDur = 1;
+% SOA = 2;
 
 %% Print test information
 fprintf('Runing %s task for %s\n',task, stimType);
@@ -14,162 +24,166 @@ fprintf('stimulus duration: %.2f\n',stimDur)
 fprintf('SOA: %.2f\n',SOA)
 fprintf('Trial number: %.2f\n',nTrial)
 
-if strcmp(task, 'oneback')
-    back = 1;
-elseif strcmp(task,'twoback')
-    back = 2;
-else
-    error('Wrong task name');
-end
-%% Get filename of all stimulus
-parDir = fullfile('stimuli',stimType);
-stimImg  = strcat(parDir,'\', extractfield(dir(fullfile(parDir,'*.jpg')),'name'))';
 
-%% Generate response matrix for all trials
-% respone matrix, totalTrial x 5 array. 
-% first column,  cond index,
-% second column, stim index,
+%% Get filename of all stimulus
+parDir = fullfile('stimuli');
+filename = fullfile(parDir,'verbal.txt');
+fileID = fopen(filename);
+stim = textscan(fileID,'%s');
+stim = stim{1}; 
+fclose(fileID);
+n_stim = length(stim); 
+
+%% Config for all trials
+rng('shuffle');
+same_prop = 0.5; % prop of the same trials
+condID = randsample([1,2], nTrial,true,[same_prop,1-same_prop]);% same,1, different, 2
+condID(1) = 2; % the first trial must be different.
+
+
+% Stim vector
+stimID = randsample(n_stim,nTrial,false);
+same = find(condID == 1);
+stimID(same) = stimID(same-1);
+
+
+% Jitter 
+jitter = normrnd(0,0.3,nTrial,1);
+
+%% setting test matrix: a nTrial x 5 array. 
+% first column, cond id,
+% second column, stim id,
 % third column, true answer,
 % fourth column, reponse answer
 % fifth colunm,  reaction time
-totalTrial = nTrial*2;
-resp = nan(totalTrial,5);
-% Condition vector, 1-match,2-not match
-match = randsample(3:totalTrial,nTrial);
-resp(match,1) = 1;
-nonmatch = isnan(resp(:,1));
-resp(nonmatch,1) = 2;
+test = nan(nTrial,5);
+test(:,1) = condID;
+test(:,2) = stimID;
+test(:,3) = condID;
 
-% Stim vector
-stim = randsample(1:length(stimImg),totalTrial);
-for i = sort(match)
-    stim(i) = stim(i-back);
-end
-resp(:,2) = stim;
-
-% Answer vector,1-match,2-not match
-resp(:,3) = resp(:,1);
-
-% make jitter
-jitter = normrnd(0.5,0.2,totalTrial,1);
-jitter = SOA + jitter;
 
 %% preprare the screen
-% close all screen
-sca;
-% skip sync tests
-Screen('Preference', 'SkipSyncTests', 1);
-% Setup PTB with some default values
-PsychDefaultSetup(2);
+sca;% close all screen
+PsychDefaultSetup(2);% Setup PTB to 'featureLevel' of 2
+Screen('Preference','TextEncodingLocale','UTF-8');
+Screen('Preference', 'SkipSyncTests', 1);% skip sync tests
+
 % Set the screen number to the secondary monitor 
 screenNumber = max(Screen('Screens'));
 % Define black, white and grey
 white = WhiteIndex(screenNumber);
 
 % Open the screen
-[window, windowRect]= PsychImaging('OpenWindow', screenNumber, white/2);
-yWidth = windowRect(4);
+[windowPtr, windowRect]= PsychImaging('OpenWindow', screenNumber, white/2);
+Screen('Flip', windowPtr);% Flip to clear
 
-% Get the centre coordinate of the window in pixels
+% Get the centre coordinate of the windowPtr in pixels
 [xCenter, yCenter] = RectCenter(windowRect);
-destRect = [xCenter-0.5*yWidth, 0, xCenter + 0.5*yWidth, yWidth];
 
-% Flip to clear
-Screen('Flip', window);
-
-%% Make texture for  instruction
-fixation = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction', 'fixation.jpg')));
-% beginInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','begin.jpg')));
-% restInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','rest.jpg')));
-onebackInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','oneback.jpg')));
-twobackInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','twoback.jpg')));
-endInstruction = Screen('MakeTexture', window, imread(fullfile('stimuli','instruction','end.jpg')));
-if strcmp(task,'oneback')
-    instruction = onebackInstruction;
-else
-    instruction = twobackInstruction;
-end
-
-%% Make texture for stimulus
-stimID = unique(resp(:,2));
-stimTexture = zeros(length(stimID),1);
-for i = 1:length(stimID)
-    stimTexture(i) = Screen('MakeTexture', window, imread(stimImg{stimID(i)}));
-end
-
-% Map stimID to textureID
-textureID = resp(:,2);
-tag = true(size(textureID));
-for i = 1:length(stimID)
-    idx = textureID==stimID(i);
-    textureID(idx & tag) = i;
-    tag(idx) = false;
-end
-
-%% show instruction and fixation
-% instruction
-Screen('DrawTexture', window, instruction);
-Screen('Flip', window);
-KbStrokeWait();
+%% Screen font and text setting
+Screen('TextFont', windowPtr,'-:lang=zh-cn');
+Screen('TextSize', windowPtr, 50);
 
 %%  Keyboard
 % Define the keyboard keys that are listened for. 
-KbName('UnifyKeyNames'); 
-escapeKey = KbName('ESCAPE'); % stop and exit
+escKey = KbName('escape'); % stop and exit
 leftKey = KbName('1'); %1-match
-rightKey = KbName('3'); % 2-not match
+rightKey = KbName('3'); % 2s-not match
+startKey = KbName('s'); % start key to run the test
 
-%% show the stimui and wait respons
-for t = 1:totalTrial
-    % show stimulus
-    Screen('DrawTexture', window,  stimTexture(textureID(t)),[],destRect);
-    tStart = Screen('Flip', window);
-    stimOn = true;
-    
-    % empty the key buffer
-    while KbCheck(), end
-    
-    % wait response    
-    response = 0;
-    while GetSecs - tStart < jitter(t)
-        if GetSecs -tStart > stimDur && stimOn
-            Screen('DrawTexture', window, fixation);
-            Screen('Flip', window);
-            stimOn = false;
-        end
-        
-        if ~response
-            [keyIsDown, tEnd, keyCode] = KbCheck;
-            if keyIsDown 
-                if keyCode(escapeKey)
-                    sca; return;
-                elseif keyCode(leftKey)
-                    response = 1;
-                elseif keyCode(rightKey)
-                    response = 2;
-                else
-                    response = 3;
-                end
-                % collect response data
-                resp(t, 4) = response;
-                resp(t, 5) = (tEnd - tStart)*1000;
-            end
-        end
+
+%% Present the begining instruction
+if strcmp(task,'oneback')
+    beginInstruction = fileread(fullfile(parDir, 'oneback.txt'));
+else
+    beginInstruction = fileread(fullfile(parDir, 'twoback.txt'));
+end
+beginInstruction = double(native2unicode(beginInstruction));
+DrawFormattedText(windowPtr, beginInstruction,'center', 'center', [0 0 1],10);
+Screen('Flip', windowPtr);
+
+while KbCheck(); end
+while true
+    [keyIsDown, ~, keyCode] = KbCheck();
+    if keyIsDown && keyCode(leftKey)
+        break;
+    elseif keyIsDown && keyCode(escKey)
+        sca; return
+    end
+end
+readyInstruction = double(native2unicode('测试马上开始'));
+DrawFormattedText(windowPtr, readyInstruction,'center', 'center', [0 0 1],10);
+Screen('Flip', windowPtr);
+
+
+%% Wait trigger to begin the test
+while KbCheck(); end
+while true
+    [keyIsDown,~,keyCode] = KbCheck();
+    if keyIsDown && keyCode(startKey)
+        break
+    elseif keyIsDown && keyCode(escKey)
+        disp('ESC is pressed to abort the program.');
+        sca; return;
     end
 end
 
+
+%% Show the stimui and wait respons
+Screen('TextSize', windowPtr, 150);
+txtCenter = yCenter+50;
+for t = 1:nTrial
+    % Show stimulus
+    stimTxt = double(native2unicode(stim{stimID(t)}));
+    DrawFormattedText(windowPtr, stimTxt,'center',txtCenter,[0 0 1],10);
+    tStart = Screen('Flip', windowPtr);
+    
+    % Wait response
+    while KbCheck(), end % empty the key buffer
+    while GetSecs - tStart < stimDur
+        [keyIsDown, tEnd, keyCode] = KbCheck();
+        if keyIsDown
+            if keyCode(escKey)
+                sca; return;
+            elseif keyCode(leftKey)
+                response = 1;
+            elseif keyCode(rightKey)
+                response = 2;
+            else
+                response = 3;
+            end
+            
+            % Insert response to the test slot
+            test(t, 4) = response; % key
+            test(t, 5) = (tEnd - tStart)*1000; % reaction time
+            break;
+        end
+    end
+    
+    % Show fixation
+    Screen('DrawDots', windowPtr, [xCenter, yCenter],...
+        40, [1 1 1], [], 3);
+    Screen('Flip', windowPtr);
+    
+    % Trial jitter
+    while GetSecs - tStart < SOA + jitter(t), end
+end
 %% Disp ending instruction
-Screen('DrawTexture', window, endInstruction);
-Screen('Flip', window);
+Screen('DrawDots', windowPtr, [xCenter, yCenter], 40, [1 1 1], [], 3);
+WaitSecs(1);
+
+endInstruction = double(native2unicode('测试结束'));
+DrawFormattedText(windowPtr,endInstruction,'center', txtCenter, [0 0 1],10);
+Screen('Flip', windowPtr);
 WaitSecs(1);
 sca;
 
 %% Save data
 date =  strrep(strrep(datestr(clock),':','-'),' ','-');
 outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_soa%.2f_nt%d_%s.mat',...
-    patientID,siteID,task,stimType,stimDur,SOA,totalTrial,date));
+    patientID,siteID,task,stimType,stimDur,SOA,nTrial,date));
 fprintf('Results were saved to: %s\n',outFile);
-save(outFile,'resp','patientID','siteID','task','stimType',...
+save(outFile,'test','patientID','siteID','task','stimType',...
     'stimDur','SOA','nTrial');
 
 
