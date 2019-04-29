@@ -110,7 +110,7 @@ function SiteID_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-set(hObject,'string','A1');
+set(hObject,'string','A1-2-1');
 
 
 function SiteID_Callback(hObject, eventdata, handles)
