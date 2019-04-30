@@ -1,5 +1,5 @@
-function varargout = stroop_gui(varargin)
-% STROOP_GUI MATLAB code for stroop_gui.fig
+function varargout = StroopGUI(varargin)
+% STROOP_GUI MATLAB code for StroopGUI.fig
 %      STROOP_GUI, by itself, creates a new STROOP_GUI or raises the existing
 %      singleton*.
 %
@@ -11,16 +11,16 @@ function varargout = stroop_gui(varargin)
 %
 %      STROOP_GUI('Property','Value',...) creates a new STROOP_GUI or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before stroop_gui_OpeningFcn gets called.  An
+%      applied to the GUI beforeStroopGUI_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to stroop_gui_OpeningFcn via varargin.
+%      stop.  All inputs are passed toStroopGUI_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to Run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help stroop_gui
+% Edit the above text to modify the response to helpStroopGUI
 
 % Last Modified by GUIDE v2.5 23-Apr-2019 21:42:22
 
@@ -28,8 +28,8 @@ function varargout = stroop_gui(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @stroop_gui_OpeningFcn, ...
-                   'gui_OutputFcn',  @stroop_gui_OutputFcn, ...
+                   'gui_OpeningFcn', @StroopGUI_OpeningFcn, ...
+                   'gui_OutputFcn',  @StroopGUI_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,26 +44,26 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before stroop_gui is made visible.
-function stroop_gui_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just beforeStroopGUI is made visible.
+function StroopGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to stroop_gui (see VARARGIN)
+% varargin   command line arguments toStroopGUI (see VARARGIN)
 
-% Choose default command line output for stroop_gui
+% Choose default command line output for StroopGUI
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes stroop_gui wait for user response (see UIRESUME)
+% UIWAIT makes StroopGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = stroop_gui_OutputFcn(hObject, eventdata, handles) 
+function varargout = StroopGUI_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -236,4 +236,4 @@ function Run_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-run_stroop(handles)
+RunStroop(handles)

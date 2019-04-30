@@ -1,5 +1,5 @@
-function [acc,rt] = stroopSummary(resp)
-% [acc,rt] = stroopSummary(resp)
+function [acc,rt] = StroopSummary(resp)
+% [acc,rt] = StroopSummary(resp)
 % acc, 3x1, mean
 % rt,3x2,  mean and sem
 acc = nan(3,1); % congruent, incongruent and neutral

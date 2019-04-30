@@ -1,5 +1,5 @@
-function run_stroop(handles)
-% run_stroop(handles)
+function RunStroop(handles)
+% RunStroop(handles)
 % handles, gui handles
 
 
@@ -15,7 +15,11 @@ siteID =   get(handles.SiteID,'String');
 % task
 str = get(handles.Task,'String');
 val = get(handles.Task,'Value');
-task = str{val};
+if iscell(str)
+    task = str{val};
+else
+    task = str;
+end
 
 % fprintf('task: %s\n',task)
 
@@ -47,7 +51,7 @@ end
 % fprintf('Trial number per condition: %.2f\n',nTrial)
 
 %% run stroop task
-resp = stroop(patientID,siteID,task,stimType,nTrial,stimDur,SOA);
+resp = Stroop(patientID,siteID,task,stimType,nTrial,stimDur,SOA);
 
 %% disp response for single trials 
 drawnow
@@ -66,8 +70,8 @@ for t = 1:nTrial
 end
 
 %% calcaute and disp averge accuracy and RT across trials
-[acc,rt] = stroopSummary(resp);
-cond_name = {'Congruent','Incongruent','Neutral'};
+[acc,rt] = StroopSummary(resp);
+cond_name = {'C','IC','N'};
 acc = acc*100;rt = rt*1000;
 % show acc
 hold(handles.axes2,'on')
@@ -84,8 +88,6 @@ end
 hold(handles.axes2,'off')
 % ylabel(handles.axes2,'Accuracy(%s)');
 set(handles.axes2,'Xtick',1:length(cond_name), 'XtickLabel',cond_name);
-
-
 
 % Show rt
 hold(handles.axes3,'on')
