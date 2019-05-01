@@ -1,5 +1,5 @@
-function [acc,rt] = wmSummary(resp)
-% [acc,rt] = wmSummary(resp)
+function [acc,rt] = WMSummary(resp)
+% [acc,rt] = WMSummary(resp)
 % acc, 1x1, mean
 % rt, 2x1,  mean and sem
 

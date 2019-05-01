@@ -71,11 +71,12 @@ end
 
 %% calcaute and disp averge accuracy and RT across trials
 [acc,rt] = StroopSummary(resp);
-cond_name = {'C','IC','N'};
+nCond = length(acc);
+if nCond == 3, cond_name = {'C','IC','N'}; else, cond_name = {'C','IC'}; end
 acc = acc*100;rt = rt*1000;
 % show acc
 hold(handles.axes2,'on')
-for i = 1:length(acc)
+for i = 1:nCond
     h = bar(handles.axes2, i,acc(i));
     if i == 1
         set(h,'FaceColor','r');
@@ -87,19 +88,19 @@ for i = 1:length(acc)
 end
 hold(handles.axes2,'off')
 % ylabel(handles.axes2,'Accuracy(%s)');
-set(handles.axes2,'Xtick',1:length(cond_name), 'XtickLabel',cond_name);
+set(handles.axes2,'Xtick',1:nCond, 'XtickLabel',cond_name);
 
 % Show rt
 hold(handles.axes3,'on')
-bar(handles.axes3,1:length(cond_name),rt(:,1));
-er = errorbar(handles.axes3,1:length(cond_name),rt(:,1),rt(:,2));
+bar(handles.axes3,1:nCond,rt(:,1));
+er = errorbar(handles.axes3,1:nCond,rt(:,1),rt(:,2));
 er.LineStyle = 'none';  
 % ylabel(handles.axes3,'Reaction time(ms)');
-set(handles.axes3,'Xtick',1:length(cond_name), 'XtickLabel',cond_name);
+set(handles.axes3,'Xtick',1:nCond, 'XtickLabel',cond_name);
 hold(handles.axes3,'off')
 
 % print acc and rt
-for i = 1:length(acc)
+for i = 1:nCond
     fprintf('%s:ACC = %.2f%%,RT = %.2f +/- %.2f s\n',...
         cond_name{i},acc(i),rt(i,1),rt(i,2))
 end

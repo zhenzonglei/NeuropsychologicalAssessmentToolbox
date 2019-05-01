@@ -1,5 +1,5 @@
-function varargout = wm_gui(varargin)
-% WM_GUI MATLAB code for wm_gui.fig
+function varargout = WMGUI(varargin)
+% WM_GUI MATLAB code for WMGUI.fig
 %      WM_GUI, by itself, creates a new WM_GUI or raises the existing
 %      singleton*.
 %
@@ -11,16 +11,16 @@ function varargout = wm_gui(varargin)
 %
 %      WM_GUI('Property','Value',...) creates a new WM_GUI or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before wm_gui_OpeningFcn gets called.  An
+%      applied to the GUI before WMGUI_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to wm_gui_OpeningFcn via varargin.
+%      stop.  All inputs are passed to WMGUI_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to Run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help wm_gui
+% Edit the above text to modify the response to help WMGUI
 
 % Last Modified by GUIDE v2.5 30-Jan-2019 11:28:10
 
@@ -28,8 +28,8 @@ function varargout = wm_gui(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @wm_gui_OpeningFcn, ...
-                   'gui_OutputFcn',  @wm_gui_OutputFcn, ...
+                   'gui_OpeningFcn', @WMGUI_OpeningFcn, ...
+                   'gui_OutputFcn',  @WMGUI_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,26 +44,26 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before wm_gui is made visible.
-function wm_gui_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before WMGUI is made visible.
+function WMGUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to wm_gui (see VARARGIN)
+% varargin   command line arguments to WMGUI (see VARARGIN)
 
-% Choose default command line output for wm_gui
+% Choose default command line output for WMGUI
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes wm_gui wait for user response (see UIRESUME)
+% UIWAIT makes WMGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = wm_gui_OutputFcn(hObject, eventdata, handles) 
+function varargout = WMGUI_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -214,7 +214,7 @@ function Run_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-run_wm(handles)
+RunWM(handles)
 
 
 % --- Executes on selection change in stimtype.

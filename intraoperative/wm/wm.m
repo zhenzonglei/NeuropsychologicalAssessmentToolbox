@@ -1,5 +1,5 @@
-function [test, outFile] = wm(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
-% [test, outFile] = wm(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
+function [test, outFile] = WM(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
+% [test, outFile] = WM(patientID,siteID,task,stimType,nTrial,stimDur,SOA)
 if nargin < 7, SOA = 2;end
 if nargin < 6, stimDur = 1; end
 if nargin < 5, nTrial = 10; end
@@ -8,7 +8,7 @@ if SOA <= stimDur
 end
 
 %% setting for test
-% close all; 
+% close all;
 % clear
 % patientID = 'PP';
 % siteID = 'A1-2-1';
@@ -30,76 +30,92 @@ fprintf('SOA: %.2f\n',SOA)
 fprintf('Trial number: %.2f\n',nTrial)
 
 
-%% preprare the screen
+%% Screen setting
 sca;% close all screen
 PsychDefaultSetup(2);% Setup PTB to 'featureLevel' of 2
 Screen('Preference','TextEncodingLocale','UTF-8');
 Screen('Preference', 'SkipSyncTests', 1);% skip sync tests
-
-% Set the screen number to the secondary monitor
-screenNumber = max(Screen('Screens'));
-% Define black, white and grey
-screenColor = BlackIndex(screenNumber);
-
-% Open the screen
-[windowPtr, windowRect]= PsychImaging('OpenWindow', screenNumber, screenColor);
+screenNumber = max(Screen('Screens'));% Set the screen number to the secondary monitor
+screenColor = BlackIndex(screenNumber);% Define black, white and grey
+[windowPtr, windowRect]= PsychImaging('OpenWindow', screenNumber, screenColor);% Open the screen
 Screen('Flip', windowPtr);% Flip to clear
-xWidth = windowRect(3); yWidth = windowRect(4);
+[xCenter, yCenter] = RectCenter(windowRect);% Get the centre coordinate of the windowPtr in pixels
+yWidth = windowRect(4);
 
-% Get the centre coordinate of the windowPtr in pixels
-[xCenter, yCenter] = RectCenter(windowRect);
-
-
-%%  Call subfunction to make stimulus
-[stim,mask] = makeStimulus(windowPtr, stimType);
-n_stim = length(stim);
-
-%% Make design
-if strcmp(task, 'Oneback')
-    nTrial = nTrial + 1; % plus 1 trial because the first trial doesn't count.
-else 
-    nTrial = nTrial + 2; % plus 2 trial because the first two trial doesn't count.
-end
-same_prop = 0.4; % prop of the same trials
-
-
-rng('shuffle');
-condID = randsample([1,2], nTrial,true,[same_prop,1-same_prop]);% same,1, different, 2
-
-% Stim vector
-stimID = randsample(n_stim,nTrial,false);
-if strcmp(task, 'Oneback')  
-    condID(1) = 2; % the first trial must be different.
-    same = find(condID == 1);
-    stimID(same) = stimID(same-1);
-else
-    condID(1:2) = 2; % the first two trial must be different.
-    same = find(condID == 1);
-    stimID(same) = stimID(same-2);
-end
-
-% Jitter
-jitter = normrnd(0,0.3,nTrial,1);
-
-%% setting test matrix: a nTrial x 5 array.
-% first column, cond id; second column, stim id,
-% third column, true answer; fourth column, reponse answer
-% fifth colunm,  reaction time
-test = nan(nTrial,5);
-test(:,1) = condID;test(:,2) = stimID;test(:,3) = condID;
-
-%% Screen font and text setting
+% Screen font and text setting
 insSize = 75; insColor = [213, 94, 0]/255;
 textSize = 200;textColor = [86, 180, 233]/255;
-maskColor = [0.5 0.5 0.5];
 Screen('TextFont', windowPtr,'-:lang=zh-cn');
 
-%%  Keyboard
+%  Keyboard
 % Define the keyboard keys that are listened for.
 escKey = KbName('escape'); % stop and exit
 leftKey = KbName('1'); %1-match
 rightKey = KbName('3'); % 2s-not match
 startKey = KbName('s'); % start key to run the test
+
+
+%%  Call subfunction to make stimulus
+switch stimType
+    case {'Word','Number'}
+        filename = fullfile('stimuli',stimType,[stimType,'.txt']);
+        fileID = fopen(filename);
+        stim = textscan(fileID,'%s');
+        stim = stim{1};
+        fclose(fileID);
+        
+    case {'Face','FaceGen','Flower'}
+        imgformat = {'jpg','bmp','png','tif'};
+        for i = 1:length(imgformat)
+            filename = dir(fullfile('stimuli',stimType,['*.',imgformat{i}]));
+            if ~isempty(filename), break; end
+        end
+        
+        stim = zeros(length(filename),1);
+        for f = 1:length(filename)
+            img = imread(fullfile(filename(f).folder,filename(f).name));
+            stim(f) = Screen('MakeTexture', windowPtr, img);
+        end
+    otherwise
+        error('Wrong type of stimulus.')
+end
+n_stim = length(stim);
+
+%% Make design
+if strcmp(task, 'Oneback')
+    nTrial = nTrial + 1; % plus 1 trial because the first trial doesn't count.
+else
+    nTrial = nTrial + 2; % plus 2 trial because the first two trial doesn't count.
+end
+
+% condition vector
+rng('shuffle');
+same_prop = 0.4; % prop of the same trials
+trialCondID = randsample([1,2], nTrial,true,[same_prop,1-same_prop]);% same,1, different, 2
+
+% Stim vector
+trialStimID = randsample(n_stim,nTrial,false);
+if strcmp(task, 'Oneback')
+    trialCondID(1) = 2; % the first trial must be different.
+    same = find(trialCondID == 1);
+    trialStimID(same) = trialStimID(same-1);
+else
+    trialCondID(1:2) = 2; % the first two trial must be different.
+    same = find(trialCondID == 1);
+    trialStimID(same) = trialStimID(same-2);
+end
+
+% Jitter
+jitter = normrnd(0,0.3,nTrial,1);
+
+% setting test matrix: a nTrial x 5 array.
+% first column, cond id; second column, stim id,
+% third column, true answer; fourth column, reponse answer
+% fifth colunm,  reaction time
+test = nan(nTrial,5);
+test(:,1) = trialCondID;
+test(:,2) = trialStimID;
+test(:,3) = trialCondID;
 
 %% Show instruction and wait subject to be ready
 if strcmp(task,'Oneback')
@@ -107,6 +123,13 @@ if strcmp(task,'Oneback')
 else
     beginInstruction = fileread(fullfile('stimuli', 'Twoback.txt'));
 end
+switch stimType
+    case {'Face','FaceGen'}, stimName = '面孔';
+    case 'Flower',           stimName = '花朵';
+    case 'Number',           stimName = '数字';
+    case 'Word',             stimName = '汉字';
+end
+beginInstruction = sprintf(beginInstruction,stimName,stimName);
 beginInstruction = double(native2unicode(beginInstruction));
 Screen('TextSize', windowPtr, insSize);
 DrawFormattedText(windowPtr, beginInstruction,'center', 'center', insColor);
@@ -116,16 +139,13 @@ Screen('Flip', windowPtr);
 while KbCheck(); end
 while true
     [keyIsDown, ~, keyCode] = KbCheck();
-    if keyIsDown && keyCode(leftKey)
-        break;
-    elseif keyIsDown && keyCode(escKey)
-        sca; return
+    if keyIsDown && keyCode(leftKey), break;
+    elseif keyIsDown && keyCode(escKey),sca; return
     end
 end
 readyInstruction = double(native2unicode('测试马上开始'));
 DrawFormattedText(windowPtr, readyInstruction,'center', 'center',insColor);
 Screen('Flip', windowPtr);
-
 
 %% Wait trigger to begin the test
 while KbCheck(); end
@@ -142,11 +162,10 @@ end
 %% Show the stimui and wait respons
 if any(strcmp({'Word','Number'},stimType)) % when stimuli are text
     Screen('TextSize', windowPtr, textSize);
-    txtCenter = yCenter+50;
     for t = 1:nTrial
         % Show stimulus
-        stimTxt = double(native2unicode(stim{stimID(t)}));
-        [~,~,textBound] = DrawFormattedText(windowPtr, stimTxt,'center',txtCenter,textColor);
+        stimTxt = double(native2unicode(stim{trialStimID(t)}));
+        DrawFormattedText(windowPtr, stimTxt,'center','center',textColor);
         tStart = Screen('Flip', windowPtr);
         
         % Wait response
@@ -154,25 +173,20 @@ if any(strcmp({'Word','Number'},stimType)) % when stimuli are text
         while GetSecs - tStart < stimDur
             [keyIsDown, tEnd, keyCode] = KbCheck();
             if keyIsDown
-                if keyCode(escKey)
-                    sca; return;
-                elseif keyCode(leftKey)
-                    response = 1;
-                elseif keyCode(rightKey)
-                    response = 2;
-                else
-                    response = 3;
+                if keyCode(escKey), sca; return;
+                elseif keyCode(leftKey), response = 1;
+                elseif keyCode(rightKey), response = 2;
+                else, response = 3;
                 end
-                
                 % Insert response to the test slot
                 test(t, 4) = response; % response key
-                test(t, 5) = (tEnd - tStart)*1000; % reaction time
+                test(t, 5) = tEnd - tStart; % reaction time
                 break;
             end
         end
         
-        % Show mask rect
-        Screen('FillRect', windowPtr, maskColor, textBound);
+        % Show mask
+        Screen('DrawDots', windowPtr, [xCenter,yCenter], 40, [1 1 1]);% fixation
         Screen('Flip', windowPtr);
         
         % Trial jitter
@@ -180,13 +194,13 @@ if any(strcmp({'Word','Number'},stimType)) % when stimuli are text
     end
     
 elseif any(strcmp({'Face','FaceGen','Flower'},stimType)) % when stimuli are image
-    [iw,ih] = size(mask); height = 3/4*yWidth;
+    [ih,iw,~] = size(img); height = 3/5*yWidth;
     scale = height/ih; width = iw*scale;
     destRect = [xCenter-0.5*width, yCenter-0.5*height, ...
         xCenter+0.5*width, yCenter+0.5*height];
     
     for t = 1:nTrial
-        Screen('DrawTexture', windowPtr, stim(stimID(t)),[],destRect);
+        Screen('DrawTexture', windowPtr, stim(trialStimID(t)),[],destRect);
         tStart = Screen('Flip', windowPtr);
         
         % Wait response
@@ -194,24 +208,20 @@ elseif any(strcmp({'Face','FaceGen','Flower'},stimType)) % when stimuli are imag
         while GetSecs - tStart < stimDur
             [keyIsDown, tEnd, keyCode] = KbCheck();
             if keyIsDown
-                if keyCode(escKey)
-                    sca; return;
-                elseif keyCode(leftKey)
-                    response = 1;
-                elseif keyCode(rightKey)
-                    response = 2;
-                else
-                    response = 3;
+                if keyCode(escKey), sca; return;
+                elseif keyCode(leftKey), response = 1;
+                elseif keyCode(rightKey), response = 2;
+                else, response = 3;
                 end
                 % Insert response to the test slot
                 test(t, 4) = response; % response key
-                test(t, 5) = (tEnd - tStart)*1000; % reaction time
+                test(t, 5) = tEnd - tStart; % reaction time
                 break;
             end
         end
         
         % Show mask
-        Screen('DrawTexture', windowPtr, mask,[], destRect);
+        Screen('DrawDots', windowPtr, [xCenter,yCenter], 40, [1 1 1]);% fixation
         Screen('Flip', windowPtr);
         
         % Trial jitter
@@ -242,40 +252,3 @@ outFile = fullfile('data',sprintf('%s_%s_%s_%s_sd%.2f_soa%.2f_nt%d_%s.mat',...
 fprintf('Results were saved to: %s\n',outFile);
 save(outFile,'test','patientID','siteID','task','stimType',...
     'stimDur','SOA','nTrial');
-
-
-function [stim,mask] = makeStimulus(windowPtr, stimType)
-% Subfunction to make stimulus
-if nargin < 2, stimType = 'Word';end
-switch stimType
-    case {'Word','Number'}
-        filename = fullfile('stimuli',stimType,[stimType,'.txt']);
-        fileID = fopen(filename);
-        stim = textscan(fileID,'%s');
-        stim = stim{1};
-        fclose(fileID);
-        mask = 0; 
-        
-    case {'Face','FaceGen','Flower'}
-        imgformat = {'jpg','bmp','png','tif'};
-        for i = 1:length(imgformat)
-            filename = dir(fullfile('stimuli',stimType,['*.',imgformat{i}]));
-            if ~isempty(filename), break; end
-        end
-        
-        stim = zeros(length(filename),1);
-        for f = 1:length(filename)
-            img = imread(fullfile(filename(f).folder,filename(f).name));
-            stim(f) = Screen('MakeTexture', windowPtr, img);
-        end
-        
-        mask = ones(size(img))*255*0.9;
-        mask = Screen('MakeTexture', windowPtr, mask);
-    otherwise
-        error('Wrong type of stimulus.')
-end
-
-
-
-
-

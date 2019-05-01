@@ -1,5 +1,5 @@
-function run_wm(handles)
-% run_wm(handles)
+function RunWM(handles)
+% RunWM(handles)
 % handles, gui handles
 
 %% extract variable from handles
@@ -45,7 +45,7 @@ end
 % fprintf('Trial number: %.2f\n',nTrial)
 
 %% run stroop task
-resp = wm(patientID,siteID,task,stimType,nTrial,stimDur,SOA);
+resp = WM(patientID,siteID,task,stimType,nTrial,stimDur,SOA);
 totalTrial = size(resp,1);
 
 %% disp response for single trials
@@ -66,7 +66,7 @@ end
 %% calcaute and disp averge accuracy and RT across trials
 
 condName = [task,'-',stimType];
-[acc,rt] = wmSummary(resp);
+[acc,rt] = WMSummary(resp);
 acc = acc*100;rt = rt*1000;
 
 % show acc

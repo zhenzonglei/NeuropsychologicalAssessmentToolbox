@@ -1,12 +1,14 @@
 function [acc,rt] = StroopSummary(resp)
 % [acc,rt] = StroopSummary(resp)
-% acc, 3x1, mean
-% rt,3x2,  mean and sem
-acc = nan(3,1); % congruent, incongruent and neutral
-rt = nan(3,2);
+% acc, nCond x 1, mean
+% rt,nCond x 2,  mean and sem
+
+nCond = max(resp(:,1));
+acc = nan(nCond,1); % congruent, incongruent and neutral
+rt = nan(nCond,2);
 correct = resp(:,3)==resp(:,4);
 
-for i = 1:3
+for i = 1:nCond
     cond = resp(:,1) == i;
     nTrial = nnz(cond);
     
